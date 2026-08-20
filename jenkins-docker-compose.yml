@@ -1,0 +1,30 @@
+# Spins up Jenkins locally with access to the HOST's Docker daemon, so
+# pipeline steps like `docker build` actually work (this is "Docker-outside-
+# of-Docker" — Jenkins' container talks to the host engine via the mounted
+# socket rather than running its own nested Docker).
+#
+# Usage:
+#   docker compose -f jenkins-docker-compose.yml up -d
+#   open http://localhost:8080
+#
+# First run: get the initial admin password with
+#   docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+version: "3.8"
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: jenkins
+    user: root                 # needed to use the mounted docker.sock
+    ports:
+      - "8080:8080"            # Jenkins web UI
+      - "50000:50000"          # agent connection port
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker   # reuse host's docker CLI binary
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:
